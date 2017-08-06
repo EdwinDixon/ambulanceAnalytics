@@ -1,6 +1,11 @@
 package com.analytics.ambulance.entities;
 
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.geo.Point;
+import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
+import org.springframework.data.mongodb.core.index.GeoSpatialIndexType;
+import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -8,7 +13,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 /**
  * Created by lenovo on 16/7/17.
  */
-@Document(collection = "ambulanceinfo")
+@Document(collection = "trial")
 public class Ambulance {
     @Id
     String id;
@@ -24,8 +29,15 @@ public class Ambulance {
     String ownerShip;
     @Field("ownership_address")
     String ownerShipAddress;
-    @Field("location")
-    Double[] location;
+    Point location;
+
+    public Point getLocation() {
+        return location;
+    }
+
+    public void setLocation(Point location) {
+        this.location = location;
+    }
 
     public String getId() {
         return id;
@@ -83,11 +95,4 @@ public class Ambulance {
         this.ownerShipAddress = ownerShipAddress;
     }
 
-    public Double[] getLocation() {
-        return location;
-    }
-
-    public void setLocation(Double[] location) {
-        this.location = location;
-    }
 }
