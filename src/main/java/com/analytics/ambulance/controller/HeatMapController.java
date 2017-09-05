@@ -12,8 +12,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.WeekFields;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 
@@ -40,7 +42,32 @@ public class HeatMapController {
 
         MongoTemplate mongoTemplate = new MongoTemplate(new SimpleMongoDbFactory(new MongoClient(), "ambulancedb"));
 
+        //projecting only what is needed to the next aggregation pipeline
+        AggregationOperation yearProjection = Aggregation.project()
+                .andExpression("year(date)").as("year")
+                .andExpression("incidentLatLng").as("incidentLatLng");
 
+
+        //groups the incidents based on the incident location and year of incident and will also count them
+        AggregationOperation groupOperation = Aggregation.group(fields().and("year").and("incidentLatLng"))
+                .count().as("count");
+
+
+        //takes groups having more than 1 incidents into consideration
+        AggregationOperation matchOperation = Aggregation.match(new Criteria("count").gt(1));
+
+
+        //helps to unwind the _id object
+        AggregationOperation unwindOperation = Aggregation.unwind("_id");
+
+
+        //changes the object structure to make the result compatible with the Incident entity
+        AggregationOperation projectOperation = Aggregation.project()
+//                .andExpression("_id.date").as("date")
+                .andExpression("_id.year").as("date")
+                .andExpression("_id.incidentLatLng").as("incidentLatLng");
+
+        System.out.println("heat map type "+heatMapType);
         if (heatMapType.equals("daily")) {
 
 
@@ -52,30 +79,13 @@ public class HeatMapController {
                             .toInstant())));
 
 
-            //projecting only what is needed to the next aggregation pipeline
-            AggregationOperation yearProjection = Aggregation.project()
-                    .andExpression("year(date)").as("year")
-                    .andExpression("incidentLatLng").as("incidentLatLng");
+  /*          System.out.println("what I printed first "+LocalDate.now().with(WeekFields.of(Locale.US).dayOfWeek(), 1L));
+            System.out.println("what came next "+LocalDate.now().with(WeekFields.of(Locale.US).getFirstDayOfWeek()));
+            System.out.println("first one "+Date.from(LocalDate.now().with(WeekFields.of(Locale.US).dayOfWeek(), 1L)
+                    .atStartOfDay(ZoneId.systemDefault()).toInstant()));
+            System.out.println("second one "+Date.from(LocalDate.now().with(WeekFields.of(Locale.US).getFirstDayOfWeek())
+            .atStartOfDay(ZoneId.systemDefault()).toInstant()));*/
 
-
-            //groups the incidents based on the incident location and year of incident and will also count them
-            AggregationOperation groupOperation = Aggregation.group(fields().and("year").and("incidentLatLng"))
-                    .count().as("count");
-
-
-            //takes groups having more than 1 incidents into consideration
-            AggregationOperation matchOperation = Aggregation.match(new Criteria("count").gt(1));
-
-
-            //helps to unwind the _id object
-            AggregationOperation unwindOperation = Aggregation.unwind("_id");
-
-
-            //changes the object structure to make the result compatible with the Incident entity
-            AggregationOperation projectOperation = Aggregation.project()
-//                .andExpression("_id.date").as("date")
-                    .andExpression("_id.year").as("date")
-                    .andExpression("_id.incidentLatLng").as("incidentLatLng");
 
 
             Aggregation aggregation = newAggregation(
@@ -91,6 +101,62 @@ public class HeatMapController {
             aggregate = mongoTemplate.aggregate(aggregation,
                     "incidents", Incident.class);
 
+        }
+        else if(heatMapType.equals("weekly"))
+        {
+            System.out.println(heatMapType);
+
+
+
+            //groups the incidents occured in the current week
+            AggregationOperation weekly = Aggregation.match(new Criteria("date")
+                    .gte(Date.from(LocalDate.now().with(WeekFields.of(Locale.US).dayOfWeek(), 1L)
+                            .atStartOfDay(ZoneId.systemDefault()).toInstant()))
+                    .lt(Date.from(LocalDate.now().with(WeekFields.of(Locale.US).getFirstDayOfWeek())
+                            .atStartOfDay(ZoneId.systemDefault()).toInstant())));
+
+            System.out.println(weekly.toString());
+
+
+            Aggregation aggregation = newAggregation(
+                    weekly,
+                    yearProjection,
+                    groupOperation,
+                    matchOperation,
+                    unwindOperation,
+                    projectOperation
+            );
+
+
+            aggregate = mongoTemplate.aggregate(aggregation,
+                    "incidents", Incident.class);
+        }
+        else if(heatMapType.equals("monthly"))
+        {
+            AggregationOperation monthly = Aggregation.match(new Criteria("date")
+                    .gte(Date.from(LocalDate.now().withDayOfMonth(1)
+                            .atStartOfDay(ZoneId.systemDefault()).toInstant()))
+                    .lt(Date.from(LocalDate.now().plusMonths(1).withDayOfMonth(1)
+                            .atStartOfDay(ZoneId.systemDefault()).toInstant())));
+
+
+
+
+            Aggregation aggregation = newAggregation(
+                    monthly,
+                    yearProjection,
+                    groupOperation,
+                    matchOperation,
+                    unwindOperation,
+                    projectOperation
+            );
+
+
+            aggregate = mongoTemplate.aggregate(aggregation,
+                    "incidents", Incident.class);
+        }
+        else{
+            return null;
         }
         return aggregate.getMappedResults();
 
