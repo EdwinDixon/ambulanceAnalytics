@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.SimpleMongoDbFactory;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.aggregation.ArrayOperators;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,6 +54,7 @@ public class AmbulanceRouteController {
                 .andExpression("date").as("date");
 
         AggregationOperation ambulanceIdMatch = Aggregation.match(new Criteria("Ambulance_no").is(ambulanceNo));
+        AggregationOperation ridesCompleted = Aggregation.match(new Criteria("currentRoute").is(false));
 
 
 
@@ -81,6 +83,7 @@ public class AmbulanceRouteController {
 
             Aggregation aggregation = newAggregation(
                     ambulanceIdMatch,
+                    ridesCompleted,
                     dailyAggregation,
                     yearProjection
             );
@@ -108,6 +111,7 @@ public class AmbulanceRouteController {
 
             Aggregation aggregation = newAggregation(
                     ambulanceIdMatch,
+                    ridesCompleted,
                     weekly,
                     yearProjection
             );
@@ -129,6 +133,7 @@ public class AmbulanceRouteController {
 
             Aggregation aggregation = newAggregation(
                     ambulanceIdMatch,
+                    ridesCompleted,
                     monthly,
                     yearProjection
             );
@@ -142,5 +147,17 @@ public class AmbulanceRouteController {
         }
         return aggregate.getMappedResults();
 
+    }
+
+    @RequestMapping(value = "/currentRoute/{ambulanceNo}")
+    @ResponseBody
+    public Incident getAmbulanceDetails(@PathVariable("ambulanceNo")
+            String ambulanceNo) {
+       Incident incident=incidentRepo.findByAmbulanceNoAndCurrentRoute(ambulanceNo,true);
+        System.out.println(incident);
+        if(incident==null){
+            return null;
+        }
+        return incident;
     }
 }

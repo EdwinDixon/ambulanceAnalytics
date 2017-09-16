@@ -28,12 +28,19 @@ public class AmbulanceDetailsController {
         this.ambulanceDetailsRepo = ambulanceDetailsRepo;
     }
 
-    @RequestMapping(value = "/ambulanceDetails/{pageNumber}")
+    @RequestMapping(value = "/ambulanceDetails")
     @ResponseBody
-    public List<Ambulance> getAmbulanceDetails(
-            @PathVariable("pageNumber") int pageNumber){
-        Page<Ambulance> ambulanceDetails = ambulanceDetailsRepo.findAll(new PageRequest(pageNumber,10));
-        return ambulanceDetails.getContent();
+    public List<Ambulance> getAmbulanceDetails(){
+        List<Ambulance> ambulanceDetails = ambulanceDetailsRepo.findAll();
+        return ambulanceDetails;
 
+    }
+
+    @RequestMapping(value = "/ambulanceDetailsCount")
+    @ResponseBody
+    public long getAmbulanceDetailsCount(){
+                long count = ambulanceDetailsRepo.count();
+
+                return count;
     }
 }

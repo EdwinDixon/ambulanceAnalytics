@@ -18,6 +18,8 @@ import java.util.List;
 @ComponentScan
 @Repository
 public interface IncidentRepo extends MongoRepository<Incident, String> {
-//    List<Incident> findByLocationNear(Point p, Distance d);
+ /*   List<Incident> findByLocationNear(Point p, Distance d);*/
+
+    Incident findByAmbulanceNoAndCurrentRoute(String ambulanceNo,boolean CurrentRoute);
 
 }

@@ -23,6 +23,8 @@ public class Ambulance {
     String licensePlateNumber;
     @Field("driver_name")
     String driverName;
+    @Field("status")
+    String status;
     @Field("driver_licence_id")
     String driverLicenseNumber;
     @Field("ownership")
@@ -38,6 +40,15 @@ public class Ambulance {
     public void setLocation(Point location) {
         this.location = location;
     }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
 
     public String getId() {
         return id;

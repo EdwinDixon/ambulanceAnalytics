@@ -18,4 +18,5 @@ import java.util.List;
 @Repository
 public interface AmbulanceRepo extends MongoRepository<Ambulance, String> {
   List<Ambulance> findByLocationNear(Point p, Distance d);
+  Ambulance findByLicensePlateNumber(String ambulanceId);
 }

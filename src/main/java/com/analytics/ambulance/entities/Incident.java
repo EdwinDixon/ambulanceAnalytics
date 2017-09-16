@@ -21,9 +21,11 @@ public class Incident {
     @Field("Ambulance_no")
     String ambulanceNo;
     @Field("incidentLatLng")
-    String[] incidentLatLng;
+    Double[] incidentLatLng;
     @Field("routeTaken")
-    List<String[]> routeTaken;
+    List<Double[]> routeTaken;
+    @Field("currentRoute")
+    boolean currentRoute;
     @Field("Time")
     String[] Time;
     @Field("Total_time")
@@ -65,19 +67,27 @@ public class Incident {
         this.ambulanceNo = ambulanceNo;
     }
 
-    public String[] getIncidentLatLng() {
+    public boolean isCurrentRoute() {
+        return currentRoute;
+    }
+
+    public void setCurrentRoute(boolean currentRoute) {
+        this.currentRoute = currentRoute;
+    }
+
+    public Double[] getIncidentLatLng() {
         return incidentLatLng;
     }
 
-    public void setIncidentLatLng(String[] incidentLatLng) {
+    public void setIncidentLatLng(Double[] incidentLatLng) {
         this.incidentLatLng = incidentLatLng;
     }
 
-    public List<String[]> getRouteTaken() {
+    public List<Double[]> getRouteTaken() {
         return routeTaken;
     }
 
-    public void setRouteTaken(List<String[]> routeTaken) {
+    public void setRouteTaken(List<Double[]> routeTaken) {
         this.routeTaken = routeTaken;
     }
 
