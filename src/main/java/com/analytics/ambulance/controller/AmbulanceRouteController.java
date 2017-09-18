@@ -6,7 +6,9 @@ import com.mongodb.MongoClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.SimpleMongoDbFactory;
-import org.springframework.data.mongodb.core.aggregation.*;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,27 +19,29 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.fields;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
 
 /**
- * Created by lenovo on 27/8/17.
+ * Created by lenovo on 19/9/17.
  */
 @RestController
 @CrossOrigin(origins = "http://localhost:4200")
 @RequestMapping("/")
-public class HeatMapController {
+public class AmbulanceRouteController {
 
     private IncidentRepo incidentRepo;
 
     @Autowired
-    public HeatMapController(IncidentRepo repo) {
+    public AmbulanceRouteController(IncidentRepo repo) {
         this.incidentRepo = repo;
     }
 
-    @RequestMapping(value = "/heatMap/{heatMapType}")
+    @RequestMapping(value = "/routesTaken/{ambulanceNo}/{routesTakenType}")
     @ResponseBody
-    public List<Incident> getAmbulanceDetails(@PathVariable("heatMapType") String heatMapType) {
-
+    public List<Incident> getAmbulanceDetails(@PathVariable("routesTakenType") String routesTakenType,@PathVariable("ambulanceNo")
+                                              String ambulanceNo) {
         AggregationResults<Incident> aggregate = null;
 
         MongoTemplate mongoTemplate = new MongoTemplate(new SimpleMongoDbFactory(new MongoClient(), "ambulancedb"));
@@ -45,30 +49,15 @@ public class HeatMapController {
         //projecting only what is needed to the next aggregation pipeline
         AggregationOperation yearProjection = Aggregation.project()
                 .andExpression("year(date)").as("year")
-                .andExpression("incidentLatLng").as("incidentLatLng");
+                .andExpression("routeTaken").as("routeTaken")
+                .andExpression("date").as("date");
+
+        AggregationOperation ambulanceIdMatch = Aggregation.match(new Criteria("Ambulance_no").is(ambulanceNo));
 
 
-        //groups the incidents based on the incident location and year of incident and will also count them
-        AggregationOperation groupOperation = Aggregation.group(fields().and("year").and("incidentLatLng"))
-                .count().as("count");
 
-
-        //takes groups having more than 1 incidents into consideration
-        AggregationOperation matchOperation = Aggregation.match(new Criteria("count").gt(1));
-
-
-        //helps to unwind the _id object
-        AggregationOperation unwindOperation = Aggregation.unwind("_id");
-
-
-        //changes the object structure to make the result compatible with the Incident entity
-        AggregationOperation projectOperation = Aggregation.project()
-//                .andExpression("_id.date").as("date")
-                .andExpression("_id.year").as("date")
-                .andExpression("_id.incidentLatLng").as("incidentLatLng");
-
-        System.out.println("heat map type "+heatMapType);
-        if (heatMapType.equals("daily")) {
+        System.out.println("heat map type "+routesTakenType);
+        if (routesTakenType.equals("daily")) {
 
 
             //groups the incidents occured on the current date
@@ -91,12 +80,9 @@ public class HeatMapController {
 
 
             Aggregation aggregation = newAggregation(
+                    ambulanceIdMatch,
                     dailyAggregation,
-                    yearProjection,
-                    groupOperation,
-                    matchOperation,
-                    unwindOperation,
-                    projectOperation
+                    yearProjection
             );
 
 
@@ -104,9 +90,9 @@ public class HeatMapController {
                     "incidents", Incident.class);
 
         }
-        else if(heatMapType.equals("weekly"))
+        else if(routesTakenType.equals("weekly"))
         {
-            System.out.println(heatMapType);
+            System.out.println(routesTakenType);
 
 
 
@@ -114,43 +100,37 @@ public class HeatMapController {
             AggregationOperation weekly = Aggregation.match(new Criteria("date")
                     .gte(Date.from(LocalDate.now().with(WeekFields.of(Locale.US).dayOfWeek(), 1L)
                             .atStartOfDay(ZoneId.systemDefault()).toInstant()))
-                    .lt(Date.from(LocalDate.now().plusDays(1)
+                    .lt(Date.from(LocalDate.now()
                             .atStartOfDay(ZoneId.systemDefault()).toInstant())));
 
             System.out.println(weekly.toString());
 
 
             Aggregation aggregation = newAggregation(
+                    ambulanceIdMatch,
                     weekly,
-                    yearProjection,
-                    groupOperation,
-                    matchOperation,
-                    unwindOperation,
-                    projectOperation
+                    yearProjection
             );
 
 
             aggregate = mongoTemplate.aggregate(aggregation,
                     "incidents", Incident.class);
         }
-        else if(heatMapType.equals("monthly"))
+        else if(routesTakenType.equals("monthly"))
         {
             AggregationOperation monthly = Aggregation.match(new Criteria("date")
                     .gte(Date.from(LocalDate.now().withDayOfMonth(1)
                             .atStartOfDay(ZoneId.systemDefault()).toInstant()))
-                    .lt(Date.from(LocalDate.now().plusDays(1)
+                    .lt(Date.from(LocalDate.now()
                             .atStartOfDay(ZoneId.systemDefault()).toInstant())));
 
 
 
 
             Aggregation aggregation = newAggregation(
+                    ambulanceIdMatch,
                     monthly,
-                    yearProjection,
-                    groupOperation,
-                    matchOperation,
-                    unwindOperation,
-                    projectOperation
+                    yearProjection
             );
 
 
